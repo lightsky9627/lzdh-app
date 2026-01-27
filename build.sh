@@ -1,41 +1,46 @@
 #!/bin/bash
-VERSION="v251201"
-REPO="qiankong/lzdh-app"
-SRC_URL="https://shop.lovestu.com/uploads/20251201/db311306755d314390abf39c123a39d9.zip"
 
-# 检测架构
-ARCH=$(uname -m)
-case $ARCH in
-    x86_64) ARCH_SUFFIX="amd64" ;;
-    aarch64|arm64) ARCH_SUFFIX="arm64" ;;
-    *)
-        echo "不支持的架构: $ARCH"
-        exit 1
-        ;;
-esac
+# ================= 配置默认值 =================
+DEFAULT_VERSION="v251201"
+DEFAULT_REPO="qiankong/lzdh-app"
+DEFAULT_URL="https://shop.lovestu.com/uploads/20251201/db311306755d314390abf39c123a39d9.zip"
+# ============================================
 
-echo "构建 $REPO:$VERSION-$ARCH_SUFFIX"
+# 1. 获取版本号 (支持回车使用默认值)
+read -p "请输入版本号 [默认: $DEFAULT_VERSION]: " INPUT_VERSION
+VERSION=${INPUT_VERSION:-$DEFAULT_VERSION}
 
-# 构建
+# 2. 获取镜像命名空间 (支持回车使用默认值)
+read -p "请输入镜像名称 [默认: $DEFAULT_REPO]: " INPUT_REPO
+REPO=${INPUT_REPO:-$DEFAULT_REPO}
+
+# 3. 获取源码地址 (通常太长，一般直接回车用默认的)
+read -p "请输入源码URL [默认: 脚本内预设地址]: " INPUT_URL
+SRC_URL=${INPUT_URL:-$DEFAULT_URL}
+
+echo ""
+echo "----------------------------------------"
+echo "正在构建: $REPO:$VERSION"
+echo "源码地址: $SRC_URL"
+echo "----------------------------------------"
+echo ""
+
+# 执行构建 (使用标准 docker build，自动适配你当前的本机架构)
 docker build \
-  --build-arg APP_VERSION=$VERSION \
-  --build-arg SOURCE_URL=$SRC_URL \
-  -t $REPO:$VERSION-$ARCH_SUFFIX \
+  --build-arg APP_VERSION="$VERSION" \
+  --build-arg SOURCE_URL="$SRC_URL" \
+  -t "$REPO:$VERSION" \
+  -t "$REPO:latest" \
   .
 
+# 检查结果
 if [ $? -eq 0 ]; then
     echo ""
-    echo "构建完成: $REPO:$VERSION-$ARCH_SUFFIX"
-    echo ""
-    echo "推送镜像:"
-    echo "  docker push $REPO:$VERSION-$ARCH_SUFFIX"
-    echo ""
-    echo "两个架构都推送后，合并:"
-    echo "  docker manifest create $REPO:$VERSION $REPO:$VERSION-amd64 $REPO:$VERSION-arm64"
-    echo "  docker manifest push $REPO:$VERSION"
-    echo "  docker manifest create $REPO:latest $REPO:$VERSION-amd64 $REPO:$VERSION-arm64"
-    echo "  docker manifest push $REPO:latest"
+    echo "✅ 构建成功！"
+    echo "你可以通过以下命令运行测试："
+    echo "docker run -d -p 8080:80 $REPO:$VERSION"
 else
-    echo "构建失败"
+    echo ""
+    echo "❌ 构建失败，请检查上方报错信息。"
     exit 1
 fi
