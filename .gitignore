@@ -1,0 +1,28 @@
+# Application data
+html/
+
+# Logs
+logs/
+*.log
+
+# MySQL data
+mysql/
+
+# Backups
+backup/
+*.sql
+
+# Environment
+.env
+.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

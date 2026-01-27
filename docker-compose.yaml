@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0.44
+    container_name: lzdh-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: lzdh_root_password
+      MYSQL_DATABASE: lzdh
+      MYSQL_USER: lzdh_user
+      MYSQL_PASSWORD: lzdh_password
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+      - ./mysql/conf.d:/etc/mysql/conf.d
+    command: 
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    networks:
+      - lzdh-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  lzdh-app:
+    image: qiankong/lzdh-app:latest
+    container_name: lzdh-app
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./logs/nginx:/var/log/nginx
+      - ./logs/php:/var/log/php
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: lzdh
+      DB_USERNAME: lzdh
+      DB_PASSWORD: lzdh_password
+      TZ: Asia/Shanghai
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - lzdh-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+networks:
+  lzdh-network:
+    driver: bridge
