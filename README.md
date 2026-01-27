@@ -1,5 +1,5 @@
 # 粒子导航 (lzdh-app) Docker 版
-[粒子导航](https://lzdh.lovestu.com/)是一款导航站主题，但是[官方文档[(https://www.yuque.com/applek/lzdh/wm3uiakuq4b1bob2)并没有给出 Docker版本部署手册。
+[粒子导航](https://lzdh.lovestu.com/)是一款导航站主题，但是[官方文档](https://www.yuque.com/applek/lzdh/wm3uiakuq4b1bob2)并没有给出 Docker版本部署手册。
 这是一个基于 **Alpine Linux** 构建的粒子导航单镜像版本。为了简化部署，该镜像内部集成了 **Nginx 1.24** 和 **PHP 8.0-FPM**，实现了一键式开箱即用。
 
 ## 🚀 快速开始
