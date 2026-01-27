@@ -11,8 +11,8 @@ services:
       MYSQL_USER: lzdh_user
       MYSQL_PASSWORD: lzdh_password
       TZ: Asia/Shanghai
-    ports:
-      - "3306:3306"
+    #ports:
+      #- "3306:3306"
     volumes:
       - ./mysql/data:/var/lib/mysql
       - ./mysql/conf.d:/etc/mysql/conf.d
@@ -33,7 +33,7 @@ services:
     container_name: lzdh-app
     restart: always
     ports:
-      - "80:80"
+      - "10086:80"
     volumes:
       - ./logs/nginx:/var/log/nginx
       - ./logs/php:/var/log/php
