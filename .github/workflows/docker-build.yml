@@ -1,0 +1,62 @@
+name: Build and Push Docker Image
+
+on:
+  # 允许手动触发，并提供输入框
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '镜像版本 (例如 v251201)'
+        required: true
+        default: 'v251201' # 你可以在这里修改默认值，提交代码
+      source_url:
+        description: '源码 ZIP 下载地址'
+        required: true
+        default: 'https://shop.lovestu.com/uploads/20251201/db311306755d314390abf39c123a39d9.zip'
+
+env:
+  IMAGE_NAME: qiankong/lzdh-app # 你的镜像名称
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 1. 拉取代码
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. 设置 QEMU (用于支持多架构构建，如 ARM64)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      # 3. 设置 Docker Buildx (构建神器的核心)
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # 4. 登录 Docker Hub
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # 5. 构建并推送
+      # 这一步会自动处理 amd64/arm64 并在 Docker Hub 生成 Manifest
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64 # 同时构建两个架构
+          push: true
+          # 传递构建参数
+          build-args: |
+            APP_VERSION=${{ inputs.version }}
+            SOURCE_URL=${{ inputs.source_url }}
+          # 自动打标签：指定版本 + latest
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ inputs.version }}
+            ${{ env.IMAGE_NAME }}:latest
+          # 利用 GitHub 缓存层加速构建
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
