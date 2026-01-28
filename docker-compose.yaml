@@ -37,7 +37,7 @@ services:
     volumes:
       - ./logs/nginx:/var/log/nginx
       - ./logs/php:/var/log/php
-      - ./html:/var/www/html/
+      - ./upload:/var/www/html/public/upload
     environment:
       DB_HOST: mysql
       DB_PORT: 3306
