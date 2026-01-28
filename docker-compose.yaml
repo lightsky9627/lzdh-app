@@ -37,6 +37,8 @@ services:
     volumes:
       - ./logs/nginx:/var/log/nginx
       - ./logs/php:/var/log/php
+      # docker cp lzdh-app:/var/www/html ./html
+      # - ./html:/var/www/html
     environment:
       DB_HOST: mysql
       DB_PORT: 3306
