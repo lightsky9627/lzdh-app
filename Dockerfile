@@ -28,6 +28,13 @@ RUN wget --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -O app.zip "${
     && rm app.zip \
     && chown -R www-data:www-data /var/www/html
 
+# 新增：补全 runtime 运行时目录（zip 里通常不带空目录）
+RUN mkdir -p /var/www/html/runtime/cache \
+    && mkdir -p /var/www/html/runtime/log \
+    && mkdir -p /var/www/html/runtime/session \
+    && mkdir -p /var/www/html/runtime/temp \
+    && chown -R www-data:www-data /var/www/html/runtime
+
 # 复制 Nginx 配置
 COPY nginx.conf /etc/nginx/nginx.conf
 
