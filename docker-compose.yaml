@@ -34,8 +34,7 @@ services:
     volumes:
       - ./logs/nginx:/var/log/nginx
       - ./logs/php:/var/log/php
-      # docker cp lzdh-app:/var/www/html ./html
-      # - ./html:/var/www/html
+      - ./data/storage:/var/www/html/public/storage
     depends_on:
       mysql:
         condition: service_healthy
