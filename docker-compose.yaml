@@ -36,6 +36,7 @@ services:
       DB_NAME: ${MYSQL_DATABASE}
       DB_USER: ${MYSQL_USER}
       DB_PASS: ${MYSQL_PASSWORD}
+      DB_PREFIX: lz_
     ports:
       - "65002:80"
     volumes:
