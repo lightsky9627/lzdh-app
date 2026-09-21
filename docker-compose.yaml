@@ -31,7 +31,7 @@ services:
     restart: always
     environment:
       DB_TYPE: mysql
-      DB_HOST: mysql-db
+      DB_HOST: lzdh-db
       DB_PORT: 3306
       DB_NAME: ${MYSQL_DATABASE}
       DB_USER: ${MYSQL_USER}
