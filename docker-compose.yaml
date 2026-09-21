@@ -1,0 +1,52 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: lzdh-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      TZ: Asia/Shanghai
+    #ports:
+      #- "3306:3306"
+    volumes:
+      - ./data/mysql:/var/lib/mysql
+    command: 
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+    networks:
+      - lzdh-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  lzdh-app:
+    image: qiankong/lzdh-app:v1.0.2
+    container_name: lzdh-app
+    restart: always
+    ports:
+      - "65002:80"
+    volumes:
+      - ./logs/nginx:/var/log/nginx
+      - ./logs/php:/var/log/php
+      # docker cp lzdh-app:/var/www/html ./html
+      # - ./html:/var/www/html
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - lzdh-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+
+networks:
+  lzdh-network:
+    driver: bridge
