@@ -4,6 +4,9 @@ set -e
 INSTALL_LOCK=/var/www/html/runtime/install.lock
 ENV_FILE=/var/www/html/.env
 
+chown -R www-data:www-data /var/www/html/public/storage
+chown -R www-data:www-data /var/www/html/runtime
+
 echo "等待数据库连接..."
 until mysqladmin ping -h"${DB_HOST}" -u"${DB_USER}" -p"${DB_PASS}" --silent; do
     sleep 2
