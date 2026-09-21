@@ -22,7 +22,7 @@ RUN mkdir -p /var/www/html \
 
 # 下载并解压源码
 WORKDIR /tmp
-RUN wget -O app.zip "${SOURCE_URL}" \
+RUN wget --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)" -O app.zip "${SOURCE_URL}" \
     && (unzip -o app.zip -d /var/www/html/ || [ $? -eq 1 ]) \
     && rm app.zip \
     && chown -R www-data:www-data /var/www/html
