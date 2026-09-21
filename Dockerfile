@@ -10,6 +10,7 @@ RUN apk add --no-cache \
     nginx \
     wget \
     unzip \
+    mysql-client \
     && docker-php-ext-install mysqli pdo pdo_mysql \
     && rm -rf /var/cache/apk/*
 
