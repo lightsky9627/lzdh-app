@@ -10,7 +10,7 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 .env 中设置 MYSQL_PASSWORD}
       TZ: ${TZ:-Asia/Shanghai}
     volumes:
-      - lzdh-db-data:/var/lib/mysql
+      - ./data/db:/var/lib/mysql
     command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
@@ -74,9 +74,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 45s
-
-volumes:
-  lzdh-db-data:
 
 networks:
   lzdh-network:
