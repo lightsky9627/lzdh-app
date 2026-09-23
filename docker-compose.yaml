@@ -2,57 +2,81 @@ services:
   mysql:
     image: mysql:8.0
     container_name: lzdh-db
-    restart: always
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      TZ: Asia/Shanghai
-    #ports:
-      #- "3306:3306"
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请在 .env 中设置 MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-lzdh}
+      MYSQL_USER: ${MYSQL_USER:-lzdh}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请在 .env 中设置 MYSQL_PASSWORD}
+      TZ: ${TZ:-Asia/Shanghai}
     volumes:
-      - ./data/mysql:/var/lib/mysql
-    command: 
+      - lzdh-db-data:/var/lib/mysql
+    command:
       - --character-set-server=utf8mb4
       - --collation-server=utf8mb4_unicode_ci
       - --default-authentication-plugin=mysql_native_password
+      - --innodb-buffer-pool-size=128M
     networks:
       - lzdh-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p$$MYSQL_ROOT_PASSWORD"]
       interval: 10s
       timeout: 5s
-      retries: 5
+      retries: 10
+      start_period: 30s
 
   lzdh-app:
-    image: qiankong/lzdh-app:v1.0.2
+    image: ${APP_IMAGE:-qiankong/lzdh-app:v1.0.2}
+    # 本地调试时可改用 build:
+    # build:
+    #   context: .
     container_name: lzdh-app
-    restart: always
+    restart: unless-stopped
     environment:
+      TZ: ${TZ:-Asia/Shanghai}
+
+      # 数据库连接（容器启动时会据此生成 /var/www/html/.env）
       DB_TYPE: mysql
-      DB_HOST: lzdh-db
+      DB_HOST: mysql
       DB_PORT: 3306
-      DB_NAME: ${MYSQL_DATABASE}
-      DB_USER: ${MYSQL_USER}
-      DB_PASS: ${MYSQL_PASSWORD}
-      DB_PREFIX: lz_
+      DB_NAME: ${MYSQL_DATABASE:-lzdh}
+      DB_USER: ${MYSQL_USER:-lzdh}
+      DB_PASS: ${MYSQL_PASSWORD:?请在 .env 中设置 MYSQL_PASSWORD}
+      DB_PREFIX: ${DB_PREFIX:-lz_}
+
+      # 首次启动自动建表并创建管理员；设为 false 则使用网页安装向导
+      AUTO_INSTALL: ${AUTO_INSTALL:-true}
+      ADMIN_USER: ${ADMIN_USER:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+
+      # 关键：与宿主机数据目录属主保持一致，否则无法上传头像/图标
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+
+      APP_DEBUG: ${APP_DEBUG:-false}
     ports:
-      - "65002:80"
+      - "${WEB_PORT:-65002}:80"
     volumes:
+      # 上传文件（头像、站点图标、附件）—— 必须持久化
+      - ./data/storage:/var/www/html/public/storage
+      # 运行时目录：缓存/会话/install.lock，持久化可避免重启后重复初始化
+      - ./data/runtime:/var/www/html/runtime
       - ./logs/nginx:/var/log/nginx
       - ./logs/php:/var/log/php
-      - ./data/storage:/var/www/html/public/storage
     depends_on:
       mysql:
         condition: service_healthy
     networks:
       - lzdh-network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/healthz"]
       interval: 30s
-      timeout: 3s
+      timeout: 5s
       retries: 3
+      start_period: 45s
+
+volumes:
+  lzdh-db-data:
 
 networks:
   lzdh-network:

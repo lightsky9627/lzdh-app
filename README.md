@@ -1,76 +1,115 @@
-# 粒子导航 (lzdh-app) Docker 版
+# 粒子导航 Docker 版
 
-[粒子导航](https://lzdh.lovestu.com/)是一款导航站主题，但是[官方文档](https://www.yuque.com/applek/lzdh/wm3uiakuq4b1bob2)并没有给出 Docker版本部署手册。
-这是一个基于 **Alpine Linux** 构建的粒子导航单镜像版本。为了简化部署，该镜像内部集成了 **Nginx 1.24** 和 **PHP 8.0-FPM**，实现了一键式开箱即用。
+将 [粒子导航](https://lzdh.lovestu.com/) 打包为单个 Docker 镜像（Alpine + Nginx + PHP 8.0-FPM），配合 MySQL 容器实现一键部署。
 
 ## 🚀 快速开始
 
-如果你只想运行该导航系统，只需克隆仓库，从模板环境变量 copy 一份，设置数据库密码即可.
-
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/lightsky9627/lzdh-app.git
+git clone https://github.com/lightsky9627/lzdh-app.git && cd lzdh-app
 
-# 2. 进去目录
-cd lzdh-app
-
-# 3. 从模板环境变量 copy 一份
+# 2. 创建 .env 并修改数据库密码
 cp .env.example .env
+vim .env   # 至少修改 MYSQL_ROOT_PASSWORD 和 MYSQL_PASSWORD
 
-# 4. 设置数据库用户密码
-vim .env
-
-# 5. 一键启动
+# 3. 启动
 docker compose up -d
+
+# 4. 查看自动生成的管理员密码
+docker compose logs lzdh-app | grep "密  码"
 ```
 
-* **访问地址**：`http://ip:65002`
-* **输出数据库配置**
-  - 主机名: `lzdh-db`
-  - 数据库名: 
-  - ......
+- **首页**: `http://IP:65002`
+- **后台**: `http://IP:65002/lz-admin`
 
----
+## ⚙️ 关键配置
 
-## 🛠️ 构建自己的镜像
+### 文件权限（解决上传头像/图标失败）
 
-如果你需要更新源码版本或更换仓库地址，可以按照以下步骤重新构建镜像：
-
-### 1. 修改构建脚本
-
-交互式输出版本号，源码的 url 链接
+容器内 PHP 使用 `PUID`/`PGID` 指定的 UID/GID 运行。**必须与宿主机 `./data` 目录的属主一致**，否则无法写入上传文件。
 
 ```bash
-./build.sh
+# 查看当前用户的 UID/GID
+id -u && id -g
+# 输出 1000 / 1000 → .env 中设置 PUID=1000 PGID=1000（默认值）
+
+# 如果宿主机 data/ 由 root 创建，可手动修正:
+sudo chown -R 1000:1000 ./data
 ```
 
-### 2. 执行构建
+### .env 配置项说明
 
-确保脚本具有可执行权限并运行：
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `MYSQL_ROOT_PASSWORD` | *必填* | MySQL root 密码 |
+| `MYSQL_DATABASE` | `lzdh` | 数据库名 |
+| `MYSQL_USER` | `lzdh` | 数据库用户 |
+| `MYSQL_PASSWORD` | *必填* | 数据库密码 |
+| `WEB_PORT` | `65002` | 宿主机端口 |
+| `PUID` / `PGID` | `1000` | 容器内 PHP 运行的 UID/GID |
+| `AUTO_INSTALL` | `true` | 首次启动自动建表建管理员；设为 `false` 走网页安装向导 |
+| `ADMIN_USER` | `admin` | 自动创建的管理员用户名 |
+| `ADMIN_PASSWORD` | *(随机)* | 管理员密码，留空则自动生成（日志中查看） |
+| `DB_PREFIX` | `lz_` | 数据表前缀 |
+| `APP_DEBUG` | `false` | 调试模式 |
+
+### 安装方式选择
+
+**方式 A — 全自动（推荐）**
+
+`.env` 中 `AUTO_INSTALL=true`（默认），启动后数据库表和管理员账号自动创建。
+
+**方式 B — 网页安装向导**
+
+```env
+AUTO_INSTALL=false
+```
+
+启动后访问 `http://IP:65002`，会自动跳转安装向导页面。安装向导中的数据库主机名填 `mysql`。
+
+## 📂 数据持久化
+
+```
+./data/storage/    → /var/www/html/public/storage   (上传文件：头像、图标、附件)
+./data/runtime/    → /var/www/html/runtime           (缓存、会话、install.lock)
+./logs/nginx/      → /var/log/nginx                  (Nginx 日志)
+./logs/php/        → /var/log/php                    (PHP 错误日志)
+MySQL 数据         → Docker named volume (lzdh-db-data)
+```
+
+> 迁移时备份 `./data/` 目录 + MySQL 数据即可。
+
+## 🔍 诊断
+
+```bash
+# 检查容器内权限、数据库连接、安装状态
+docker compose exec lzdh-app docker-entrypoint.sh doctor
+```
+
+## 🛠️ 构建自己的镜像
 
 ```bash
 chmod +x build.sh
 ./build.sh
+# 交互式输入版本号、镜像名、源码URL
 ```
 
-构建成功后，脚本会自动生成两个标签：`latest` 和指定的版本号（如 `v251201`）。
+## 📁 文件结构
 
----
-
-## 📂 文件结构说明
-
-| 文件                    | 说明                                                       |
-| ----------------------- | ---------------------------------------------------------- |
-| **Dockerfile**          | 基于 `php:8.0-fpm-alpine`，包含 Nginx 安装及源码解压逻辑。 |
-| **build.sh**            | 一键构建脚本，支持自定义版本和源码地址。                   |
-| **docker-compose.yaml** | 编排文件，一键启动 App (Nginx+PHP) 与 MySQL 容器。         |
-| **nginx.conf**          | 预设好的 Nginx 配置，已处理 PHP 转发。                     |
-| **start.sh**            | 容器启动入口脚本，确保 PHP 和 Nginx 同时运行。             |
-
----
+| 文件 | 说明 |
+|------|------|
+| `Dockerfile` | 基于 `php:8.0-fpm-alpine`，集成 Nginx + PHP-FPM |
+| `docker-entrypoint.sh` | 入口脚本：PUID/PGID 映射、目录权限修正、数据库初始化 |
+| `bootstrap.php` | PHP 引导脚本：等待数据库、导表、创建管理员、同步 .env |
+| `nginx.conf` | Nginx 配置：ThinkPHP 伪静态、上传目录安全、unix socket |
+| `php/php.ini` | PHP 运行时配置：上传大小、时区、OPcache |
+| `php/www.conf` | PHP-FPM 池配置：unix socket、环境变量传递 |
+| `docker-compose.yaml` | 编排：App + MySQL，卷挂载 |
+| `build.sh` | 交互式构建脚本 |
 
 ## 📝 注意事项
 
-* **环境依赖**：构建环境需已安装 Docker 和 Docker Compose。
-* **基础镜像**：本项目严格使用 Alpine 版本基础镜像，以确保存储占用最小化（镜像大小约 100MB+）。
-* **源码更新**：本方案将源码直接打包入镜像。如需更新应用代码，请修改 `build.sh` 中的 `SRC_URL` 后重新执行构建并重启 Compose。
+- 镜像约 130MB（Alpine 基础），支持 amd64 / arm64
+- PHP 上传限制已设为 64MB（`php.ini`），Nginx 限制 72MB（`nginx.conf`）
+- 上传目录禁止执行 PHP 脚本（安全加固）
+- 容器以 root 启动（用于修正挂载目录权限），PHP-FPM 进程以 `PUID:PGID` 身份运行

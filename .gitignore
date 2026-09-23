@@ -1,26 +1,18 @@
-# Application data
-html/
-
-# Logs
-logs/
-*.log
-
-# MySQL data
+# 运行时数据（由 docker compose 挂载生成）
 data/
+logs/
 
-# Backups
-backup/
-*.sql
-
-# Environment
+# 环境变量（含密码）
 .env
 .env.local
 
-# OS
+# 备份
+backup/
+*.sql
+
+# 系统 / 编辑器
 .DS_Store
 Thumbs.db
-
-# IDE
 .vscode/
 .idea/
 *.swp

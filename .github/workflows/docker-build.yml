@@ -1,7 +1,7 @@
 name: Build and Push Multi-Arch Image
 
 on:
-  workflow_dispatch: {}   # 不声明 inputs，触发时不会有任何表单，直接点确认
+  workflow_dispatch: {}
 
 jobs:
   build:
